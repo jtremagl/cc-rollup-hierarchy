@@ -1,21 +1,18 @@
 name: CI
 
 on:
-  pull_request:
   push:
     branches: ['main']
+  pull_request:
 
 jobs:
-  build:
-    name: Build
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-        env:
-          ASSET_PATH: /${{ github.event.repository.name }}/
+      - name: Verify static assets
+        run: |
+          test -f index.html
+          test -f cc-internal.json
+          test -f cc-external.json
+          python3 -c "import json; json.load(open('cc-internal.json')); json.load(open('cc-external.json')); print('json ok')"

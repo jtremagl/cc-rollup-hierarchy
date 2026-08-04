@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cost Center Roll-Up Hierarchy | Red Hat</title>
+  <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.2.0/patternfly.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.2.0/patternfly-addons.min.css" />
+  <style>
+    :root {
+      --cc-dept1: #0066cc;
+      --cc-dept2: #3d7a45;
+      --cc-dept3: #c46100;
+      --cc-dept4: #5752d1;
+      --cc-dept5: #a30000;
+      --cc-dept6: #6a6e73;
+      --cc-leaf: #151515;
+    }
+
+    body {
+      margin: 0;
+      background: var(--pf-t--global--background--color--secondary--default);
+    }
+
+    .pf-v6-c-page {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      grid-template-columns: none;
+    }
+
+    .pf-v6-c-page__main {
+      width: 100%;
+      max-width: none;
+      flex: 1 1 auto;
+      grid-area: unset;
+    }
+
+    .pf-v6-c-page__main-section,
+    .pf-v6-c-page__main-body {
+      width: 100%;
+      max-width: none;
+    }
+
+    .app-masthead {
+      background: var(--pf-t--global--background--color--brand--default, #ee0000);
+      color: #fff;
+      width: 100%;
+    }
+
+    .app-masthead .pf-v6-c-masthead__main,
+    .app-masthead .pf-v6-c-masthead__content {
+      color: #fff;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .app-brand__mark {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 2px;
+      background: #fff;
+      color: #ee0000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .page-body {
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 1.5rem 2rem 3rem;
+    }
+
+    @media (min-width: 1200px) {
+      .page-body {
+        padding: 2rem 3rem 3.5rem;
+      }
+    }
+
+    .hero { margin-bottom: 1rem; }
+    .hero h1 { margin: 0 0 0.35rem; }
+
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      margin: 0 0 1.25rem;
+      border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    }
+
+    .view-tab {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.7rem 1.1rem;
+      color: var(--pf-t--global--text--color--subtle);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .view-tab:hover {
+      color: var(--pf-t--global--text--color--regular);
+      background: var(--pf-t--global--background--color--primary--default);
+    }
+
+    .view-tab[aria-selected="true"] {
+      color: var(--pf-t--global--text--color--regular);
+      border-bottom-color: #ee0000;
+    }
+
+    .view-tab:focus-visible {
+      outline: 2px solid var(--pf-t--global--border--color--brand--default);
+      outline-offset: 2px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .pf-v6-c-card { width: 100%; }
+
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar-row .pf-v6-c-text-input-group {
+      max-width: none;
+      flex: 1 1 320px;
+    }
+
+    .stat-card {
+      background: var(--pf-t--global--background--color--primary--default);
+      border: 1px solid var(--pf-t--global--border--color--default);
+      border-radius: var(--pf-t--global--border--radius--small);
+      padding: 0.85rem 1rem;
+    }
+
+    .stat-card__value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .stat-card__label {
+      font-size: 0.75rem;
+      color: var(--pf-t--global--text--color--subtle);
+      margin-top: 0.15rem;
+    }
+
+    .level-swatch {
+      display: inline-block;
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 2px;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+
+    .level-swatch.dept1 { background: var(--cc-dept1); }
+    .level-swatch.dept2 { background: var(--cc-dept2); }
+    .level-swatch.dept3 { background: var(--cc-dept3); }
+    .level-swatch.dept4 { background: var(--cc-dept4); }
+    .level-swatch.dept5 { background: var(--cc-dept5); }
+    .level-swatch.dept6 { background: var(--cc-dept6); }
+    .level-swatch.cc { background: var(--cc-leaf); }
+
+    .tree { list-style: none; margin: 0; padding: 0; }
+
+    .tree ul {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 0 1.1rem;
+      border-left: 1px solid var(--pf-t--global--border--color--default);
+      margin-left: 0.55rem;
+    }
+
+    .tree-node { margin: 0.15rem 0; }
+    .tree-node[hidden] { display: none !important; }
+
+    .tree-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      padding: 0.4rem 0.5rem;
+      border-radius: var(--pf-t--global--border--radius--small);
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+    }
+
+    .tree-row:hover {
+      background: var(--pf-t--global--background--color--secondary--default);
+    }
+
+    .tree-row:focus-visible {
+      outline: 2px solid var(--pf-t--global--border--color--brand--default);
+      outline-offset: 1px;
+    }
+
+    .tree-row--leaf { cursor: default; }
+
+    .tree-row--cc {
+      padding-left: 0.75rem;
+    }
+
+    .tree-toggle {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--pf-t--global--icon--color--subtle);
+      transition: transform 0.12s ease;
+    }
+
+    .tree-node.is-open > .tree-row .tree-toggle {
+      transform: rotate(90deg);
+    }
+
+    .tree-toggle--spacer { visibility: hidden; }
+
+    .tree-label {
+      font-weight: 500;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .tree-label--cc {
+      font-weight: 400;
+      font-family: var(--pf-t--global--font--family--mono, ui-monospace, monospace);
+      font-size: 0.85rem;
+    }
+
+    .tree-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .sf-code {
+      font-family: var(--pf-t--global--font--family--mono, ui-monospace, monospace);
+      font-size: 0.75rem;
+      color: var(--pf-t--global--text--color--subtle);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+
+    .badge-level {
+      background: var(--pf-t--global--background--color--secondary--default);
+      color: var(--pf-t--global--text--color--regular);
+      border: 1px solid var(--pf-t--global--border--color--default);
+    }
+
+    .badge-count {
+      background: var(--pf-t--global--color--nonstatus--blue--default, #e0f0ff);
+      color: var(--pf-t--global--text--color--link--default, #0066cc);
+    }
+
+    .badge-cc {
+      background: #f0f0f0;
+      color: #151515;
+      border: 1px solid #d2d2d2;
+    }
+
+    .status-banner {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--pf-t--global--border--color--default);
+      border-radius: var(--pf-t--global--border--radius--small);
+      background: var(--pf-t--global--background--color--primary--default);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    .status-banner--error {
+      border-color: #c9190b;
+      color: #a30000;
+    }
+
+    @media (max-width: 640px) {
+      .tree-meta {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 1.75rem;
+      }
+      .tree-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pf-v6-c-page" id="page">
+    <header class="pf-v6-c-masthead app-masthead" id="page-masthead">
+      <div class="pf-v6-c-masthead__main">
+        <div class="pf-v6-c-masthead__brand">
+          <span class="app-brand">
+            <span class="app-brand__mark" aria-hidden="true">RH</span>
+            <span>Spend Operations</span>
+          </span>
+        </div>
+      </div>
+      <div class="pf-v6-c-masthead__content">
+        <span class="pf-v6-u-font-size-sm">Cost Center Hierarchy Explorer</span>
+      </div>
+    </header>
+
+    <main class="pf-v6-c-page__main" tabindex="-1" id="main-content">
+      <section class="pf-v6-c-page__main-section">
+        <div class="pf-v6-c-page__main-body page-body">
+          <div class="hero">
+            <h1 class="pf-v6-c-title pf-m-2xl" id="hero-title">Cost Center Roll-Up Hierarchy</h1>
+            <p class="pf-v6-u-color-subtle pf-v6-u-mb-sm" id="hero-description"></p>
+            <p class="pf-v6-u-font-size-sm pf-v6-u-color-subtle" id="hero-source"></p>
+          </div>
+
+          <div class="view-tabs" role="tablist" aria-label="Hierarchy view">
+            <button class="view-tab" type="button" role="tab" id="tab-internal" aria-controls="view-panel" aria-selected="true" data-view="internal">
+              Internal
+            </button>
+            <button class="view-tab" type="button" role="tab" id="tab-external" aria-controls="view-panel" aria-selected="false" data-view="external">
+              External
+            </button>
+          </div>
+
+          <div id="load-status" class="status-banner" hidden></div>
+
+          <div id="view-panel" role="tabpanel" aria-labelledby="tab-internal">
+            <div class="stat-row" id="stats" aria-live="polite"></div>
+
+            <div class="pf-v6-c-card pf-m-plain pf-v6-u-mb-lg">
+              <div class="pf-v6-c-card__header">
+                <div class="pf-v6-c-card__title">
+                  <h2 class="pf-v6-c-title pf-m-lg">Hierarchy levels</h2>
+                </div>
+              </div>
+              <div class="pf-v6-c-card__body">
+                <p class="pf-v6-u-font-size-sm pf-v6-u-color-subtle pf-v6-u-mb-md">
+                  Department nodes roll up cost centers. Expand a branch to see cost center number and name as leaves.
+                </p>
+                <div class="pf-v6-c-table-wrapper">
+                  <table class="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
+                    <thead>
+                      <tr role="row">
+                        <th role="columnheader" scope="col">Level</th>
+                        <th role="columnheader" scope="col">Scope</th>
+                        <th role="columnheader" scope="col">Examples</th>
+                      </tr>
+                    </thead>
+                    <tbody id="legend-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="pf-v6-c-card pf-v6-u-mb-lg">
+              <div class="pf-v6-c-card__header">
+                <div class="pf-v6-c-card__title">
+                  <h2 class="pf-v6-c-title pf-m-lg">Interactive hierarchy tree</h2>
+                </div>
+              </div>
+              <div class="pf-v6-c-card__body">
+                <p class="pf-v6-u-font-size-sm pf-v6-u-color-subtle">
+                  Expand department nodes to reveal cost centers (<code>COST_CENTER</code> + <code>DESCRIPTION</code>).
+                  Search matches labels, Snowflake DEPT values, cost center numbers, and names.
+                </p>
+
+                <div class="toolbar-row">
+                  <div class="pf-v6-c-text-input-group">
+                    <div class="pf-v6-c-text-input-group__main">
+                      <span class="pf-v6-c-text-input-group__text">
+                        <input
+                          class="pf-v6-c-text-input-group__text-input"
+                          type="search"
+                          id="tree-search"
+                          placeholder="Filter by dept, CC number, or name…"
+                          aria-label="Filter hierarchy tree"
+                        />
+                      </span>
+                    </div>
+                  </div>
+                  <button class="pf-v6-c-button pf-m-secondary" type="button" id="btn-expand-depts">Expand departments</button>
+                  <button class="pf-v6-c-button pf-m-secondary" type="button" id="btn-expand-all">Expand all</button>
+                  <button class="pf-v6-c-button pf-m-secondary" type="button" id="btn-collapse-all">Collapse all</button>
+                </div>
+
+                <div id="tree-root" class="pf-v6-u-mt-sm" aria-label="Cost center hierarchy"></div>
+                <p id="tree-empty" class="pf-v6-u-color-subtle pf-v6-u-mt-md" hidden>No nodes match that filter.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const VIEW_META = {
+      internal: {
+        tabId: "tab-internal",
+        title: "Cost Center Roll-Up Hierarchy (Internal)",
+        description:
+          "Business-segment hierarchy from Snowflake METADATA_COSTCENTER_INTERNAL. Expand branches to see each cost center number and name.",
+        source: "ONESTREAM_DB.UNRESTRICTED_MARTS.METADATA_COSTCENTER_INTERNAL",
+        dataUrl: "cc-internal.json",
+        segmentLabel: "Business segments (DEPT_1)",
+        deptOrder: ["PnGE", "MKT", "Total_SnS", "CORP"],
+        legend: [
+          ["DEPT_1", "Business segment", "PnGE, MKT, Total_SnS, CORP"],
+          ["DEPT_2", "Division", "Global_Engineering, SLS, RSS"],
+          ["DEPT_3", "Sub-division", "CSO, ECO, GnA_RH"],
+          ["DEPT_4", "Function", "GEO_Sales, COO_RH, XE_COGS"],
+          ["DEPT_5", "Team / unit", "BSO_RH, IT_RH, PPL_RH"],
+          ["DEPT_6", "Leaf department", "Deepest DEPT before cost centers"],
+          ["CC", "Cost center", "CC100 — CEE COGS Regions PMO"]
+        ]
+      },
+      external: {
+        tabId: "tab-external",
+        title: "Cost Center Roll-Up Hierarchy (External)",
+        description:
+          "P&L hierarchy from Snowflake METADATA_COSTCENTER_EXTERNAL (Operating Expense vs Cost of Revenue). Expand branches to see each cost center number and name.",
+        source: "ONESTREAM_DB.UNRESTRICTED_MARTS.METADATA_COSTCENTER_EXTERNAL",
+        dataUrl: "cc-external.json",
+        segmentLabel: "P&L categories (DEPT_1)",
+        deptOrder: ["Operating_Expense", "Cost_of_Revenue"],
+        legend: [
+          ["DEPT_1", "P&L category", "Operating_Expense, Cost_of_Revenue"],
+          ["DEPT_2", "Function group", "SnM, GnA_External, RnD_External, DSU, DSE"],
+          ["DEPT_3", "Sub-function", "Sales_Function, PPL_External, XE_COGS"],
+          ["DEPT_4", "Team / org", "CSO_Ops, Corporate_Marketing, FAC"],
+          ["DEPT_5", "Sub-team", "GEO_Sales, Brand_Experience"],
+          ["DEPT_6", "Leaf department", "Deepest DEPT before cost centers"],
+          ["CC", "Cost center", "CC100 — CEE COGS Regions PMO"]
+        ]
+      }
+    };
+
+    const cache = {};
+    let activeView = "internal";
+    let currentHierarchy = [];
+
+    function friendly(sf) {
+      return String(sf || "").replace(/_/g, " ");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function levelClass(level) {
+      return (level || "").toLowerCase().replace(/_/g, "");
+    }
+
+    function compareSf(a, b, preferred) {
+      const ia = preferred.indexOf(a);
+      const ib = preferred.indexOf(b);
+      if (ia !== -1 || ib !== -1) {
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      }
+      return a.localeCompare(b);
+    }
+
+    /** Build DEPT tree from flat CC rows; CCs hang under deepest DEPT path. */
+    function buildHierarchyFromRows(rows, preferredOrder) {
+      const rootMap = new Map();
+
+      function ensureDept(parentMap, sfValue, level) {
+        if (!parentMap.has(sfValue)) {
+          parentMap.set(sfValue, {
+            sheetLabel: friendly(sfValue),
+            sfValue,
+            level,
+            ccCount: 0,
+            childMap: new Map(),
+            costCenters: []
+          });
+        }
+        return parentMap.get(sfValue);
+      }
+
+      for (const row of rows) {
+        const path = Array.isArray(row.dept) ? row.dept.filter(Boolean) : [];
+        if (!path.length) continue;
+
+        let map = rootMap;
+        let node = null;
+        for (let i = 0; i < path.length; i++) {
+          node = ensureDept(map, path[i], `DEPT_${i + 1}`);
+          map = node.childMap;
+        }
+        node.costCenters.push({
+          sheetLabel: `${row.costCenter} — ${row.description || "(no name)"}`,
+          sfValue: row.costCenter,
+          level: "CC",
+          description: row.description || "",
+          isCostCenter: true
+        });
+      }
+
+      function finalize(map, preferred) {
+        const keys = Array.from(map.keys()).sort((a, b) => compareSf(a, b, preferred || []));
+        return keys.map((key) => {
+          const raw = map.get(key);
+          const deptChildren = finalize(raw.childMap, []);
+          const ccChildren = raw.costCenters
+            .slice()
+            .sort((a, b) => a.sfValue.localeCompare(b.sfValue));
+          const children = deptChildren.concat(ccChildren);
+          const ccCount =
+            ccChildren.length +
+            deptChildren.reduce((sum, child) => sum + (child.ccCount || 0), 0);
+          return {
+            sheetLabel: raw.sheetLabel,
+            sfValue: raw.sfValue,
+            level: raw.level,
+            ccCount,
+            children
+          };
+        });
+      }
+
+      return finalize(rootMap, preferredOrder || []);
+    }
+
+    function countNodes(nodes) {
+      let total = 0;
+      for (const item of nodes) {
+        total += 1;
+        if (item.children) total += countNodes(item.children);
+      }
+      return total;
+    }
+
+    function countCostCenters(nodes) {
+      let total = 0;
+      for (const item of nodes) {
+        if (item.isCostCenter || item.level === "CC") total += 1;
+        if (item.children) total += countCostCenters(item.children);
+      }
+      return total;
+    }
+
+    function maxDeptDepth(nodes, depth = 0) {
+      let max = depth;
+      for (const item of nodes) {
+        if (item.level === "CC" || item.isCostCenter) continue;
+        max = Math.max(max, depth + 1);
+        if (item.children) max = Math.max(max, maxDeptDepth(item.children, depth + 1));
+      }
+      return max;
+    }
+
+    function showStatus(message, isError) {
+      const el = document.getElementById("load-status");
+      if (!message) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+      }
+      el.hidden = false;
+      el.textContent = message;
+      el.classList.toggle("status-banner--error", !!isError);
+    }
+
+    async function loadViewData(viewKey) {
+      if (cache[viewKey]) return cache[viewKey];
+      const meta = VIEW_META[viewKey];
+      const res = await fetch(meta.dataUrl, { cache: "no-cache" });
+      if (!res.ok) throw new Error(`Failed to load ${meta.dataUrl} (${res.status})`);
+      const rows = await res.json();
+      const hierarchy = buildHierarchyFromRows(rows, meta.deptOrder);
+      cache[viewKey] = { rows, hierarchy };
+      return cache[viewKey];
+    }
+
+    function renderHero(meta) {
+      document.getElementById("hero-title").textContent = meta.title;
+      document.getElementById("hero-description").textContent = meta.description;
+      document.getElementById("hero-source").innerHTML =
+        "Source: <code>" + escapeHtml(meta.source) + "</code>";
+    }
+
+    function renderLegend(meta) {
+      document.getElementById("legend-body").innerHTML = meta.legend
+        .map(
+          ([level, scope, examples]) => `
+        <tr role="row">
+          <td role="cell"><span class="level-swatch ${levelClass(level)}"></span><span class="badge badge-level">${escapeHtml(level)}</span></td>
+          <td role="cell">${escapeHtml(scope)}</td>
+          <td role="cell" class="sf-code">${escapeHtml(examples)}</td>
+        </tr>`
+        )
+        .join("");
+    }
+
+    function renderStats(meta, hierarchy) {
+      const items = [
+        { value: hierarchy.length, label: meta.segmentLabel },
+        { value: countNodes(hierarchy), label: "Hierarchy nodes (incl. CCs)" },
+        { value: countCostCenters(hierarchy), label: "Cost centers" },
+        { value: maxDeptDepth(hierarchy), label: "Max DEPT depth" }
+      ];
+      document.getElementById("stats").innerHTML = items
+        .map(
+          (item) => `
+        <div class="stat-card">
+          <div class="stat-card__value">${item.value}</div>
+          <div class="stat-card__label">${escapeHtml(item.label)}</div>
+        </div>`
+        )
+        .join("");
+    }
+
+    function nodeMatches(item, query) {
+      if (!query) return true;
+      const hay = `${item.sheetLabel} ${item.sfValue} ${item.level} ${item.description || ""}`.toLowerCase();
+      if (hay.includes(query)) return true;
+      return (item.children || []).some((child) => nodeMatches(child, query));
+    }
+
+    function buildTree(nodes, depth = 0) {
+      const ul = document.createElement("ul");
+      ul.className = "tree";
+      ul.setAttribute("role", depth === 0 ? "tree" : "group");
+
+      for (const item of nodes) {
+        const isCc = item.level === "CC" || item.isCostCenter;
+        const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+        const defaultOpen = hasChildren && !isCc && depth < 2;
+
+        const li = document.createElement("li");
+        li.className = "tree-node" + (defaultOpen ? " is-open" : "");
+        li.dataset.kind = isCc ? "cc" : "dept";
+        li.setAttribute("role", "treeitem");
+        if (hasChildren) li.setAttribute("aria-expanded", defaultOpen ? "true" : "false");
+
+        const row = document.createElement(hasChildren ? "button" : "div");
+        row.className =
+          "tree-row" +
+          (hasChildren ? "" : " tree-row--leaf") +
+          (isCc ? " tree-row--cc" : "");
+        if (hasChildren) row.type = "button";
+
+        const toggle = document.createElement("span");
+        toggle.className = "tree-toggle" + (hasChildren ? "" : " tree-toggle--spacer");
+        toggle.setAttribute("aria-hidden", "true");
+        toggle.textContent = "▸";
+
+        const swatch = document.createElement("span");
+        swatch.className = `level-swatch ${levelClass(item.level)}`;
+        swatch.setAttribute("aria-hidden", "true");
+
+        const labelEl = document.createElement("span");
+        labelEl.className = "tree-label" + (isCc ? " tree-label--cc" : "");
+        labelEl.textContent = item.sheetLabel;
+
+        const meta = document.createElement("span");
+        meta.className = "tree-meta";
+        if (isCc) {
+          meta.innerHTML = `<span class="badge badge-cc">CC</span>`;
+        } else {
+          meta.innerHTML = `
+            <span class="sf-code">${escapeHtml(item.sfValue)}</span>
+            <span class="badge badge-level">${escapeHtml(item.level)}</span>
+            ${item.ccCount != null ? `<span class="badge badge-count">${item.ccCount} CCs</span>` : ""}
+          `;
+        }
+
+        row.append(toggle, swatch, labelEl, meta);
+        li.appendChild(row);
+
+        if (hasChildren) {
+          const childList = buildTree(item.children, depth + 1);
+          childList.hidden = !defaultOpen;
+          li.appendChild(childList);
+          row.addEventListener("click", () => {
+            const open = li.classList.toggle("is-open");
+            childList.hidden = !open;
+            li.setAttribute("aria-expanded", open ? "true" : "false");
+          });
+        }
+
+        ul.appendChild(li);
+      }
+
+      return ul;
+    }
+
+    function setOpenState({ all, deptsOnly }) {
+      document.querySelectorAll("#tree-root .tree-node").forEach((li) => {
+        const group = li.querySelector(":scope > ul");
+        if (!group) return;
+        const isCcNode = li.dataset.kind === "cc";
+        let open = false;
+        if (all) open = true;
+        else if (deptsOnly) open = li.dataset.kind === "dept";
+        else open = false;
+
+        // never "open" a CC leaf itself; only dept nodes that contain children
+        if (isCcNode) open = false;
+
+        // For expand departments: open dept nodes, but if a dept's children are only CCs,
+        // still open it so CCs become visible? User asked expand departments vs expand all.
+        // "Expand departments" = open DEPT nodes but keep CC lists collapsed under the deepest dept.
+        // So: open a dept node only if it has at least one dept child; if children are only CCs, leave closed unless all.
+        if (deptsOnly && !all) {
+          const hasDeptChild = Array.from(group.children).some(
+            (child) => child.dataset && child.dataset.kind === "dept"
+          );
+          open = hasDeptChild;
+          // Also open top two levels for usability
+        }
+
+        li.classList.toggle("is-open", open);
+        group.hidden = !open;
+        li.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+
+      if (deptsOnly && !all) {
+        // Open dept chain until the parent of CC leaves
+        document.querySelectorAll("#tree-root .tree-node[data-kind='dept']").forEach((li) => {
+          const group = li.querySelector(":scope > ul");
+          if (!group) return;
+          const hasDeptChild = Array.from(group.children).some(
+            (child) => child.dataset && child.dataset.kind === "dept"
+          );
+          if (hasDeptChild) {
+            li.classList.add("is-open");
+            group.hidden = false;
+            li.setAttribute("aria-expanded", "true");
+          }
+        });
+      }
+    }
+
+    function applyFilter(query) {
+      const q = query.trim().toLowerCase();
+      const root = document.getElementById("tree-root");
+      const empty = document.getElementById("tree-empty");
+      let visibleCount = 0;
+
+      function walk(nodes, parentLis) {
+        nodes.forEach((item, index) => {
+          const li = parentLis[index];
+          const match = nodeMatches(item, q);
+          li.hidden = !match;
+          if (!match) return;
+          visibleCount += 1;
+          if (item.children && item.children.length) {
+            const group = li.querySelector(":scope > ul");
+            if (!group) return;
+            if (q) {
+              li.classList.add("is-open");
+              group.hidden = false;
+              li.setAttribute("aria-expanded", "true");
+            }
+            walk(item.children, Array.from(group.children));
+          }
+        });
+      }
+
+      const topUl = root.querySelector(":scope > ul");
+      if (topUl) walk(currentHierarchy, Array.from(topUl.children));
+      empty.hidden = visibleCount > 0;
+    }
+
+    function renderTree() {
+      const root = document.getElementById("tree-root");
+      root.innerHTML = "";
+      root.appendChild(buildTree(currentHierarchy));
+      document.getElementById("tree-search").value = "";
+      document.getElementById("tree-empty").hidden = true;
+    }
+
+    async function setView(viewKey) {
+      activeView = viewKey;
+      const meta = VIEW_META[viewKey];
+
+      document.querySelectorAll(".view-tab").forEach((tab) => {
+        const selected = tab.dataset.view === viewKey;
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+      document.getElementById("view-panel").setAttribute("aria-labelledby", meta.tabId);
+
+      renderHero(meta);
+      renderLegend(meta);
+      showStatus("Loading cost centers from Snowflake export…", false);
+
+      try {
+        const data = await loadViewData(viewKey);
+        currentHierarchy = data.hierarchy;
+        renderStats(meta, currentHierarchy);
+        renderTree();
+        showStatus("", false);
+      } catch (err) {
+        currentHierarchy = [];
+        document.getElementById("tree-root").innerHTML = "";
+        document.getElementById("stats").innerHTML = "";
+        showStatus(
+          "Could not load cost center data. Open this page via GitHub Pages (not a local file). " +
+            String(err.message || err),
+          true
+        );
+      }
+
+      const url = new URL(window.location.href);
+      url.hash = viewKey === "external" ? "external" : "internal";
+      history.replaceState(null, "", url);
+    }
+
+    function init() {
+      document
+        .getElementById("btn-expand-all")
+        .addEventListener("click", () => setOpenState({ all: true }));
+      document
+        .getElementById("btn-expand-depts")
+        .addEventListener("click", () => setOpenState({ deptsOnly: true }));
+      document
+        .getElementById("btn-collapse-all")
+        .addEventListener("click", () => setOpenState({}));
+      document
+        .getElementById("tree-search")
+        .addEventListener("input", (e) => applyFilter(e.target.value));
+
+      document.querySelectorAll(".view-tab").forEach((tab) => {
+        tab.addEventListener("click", () => setView(tab.dataset.view));
+      });
+
+      const hash = (window.location.hash || "").replace("#", "").toLowerCase();
+      setView(hash === "external" ? "external" : "internal");
+    }
+
+    init();
+  </script>
+</body>
+</html>
